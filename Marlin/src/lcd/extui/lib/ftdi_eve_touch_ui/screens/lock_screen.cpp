@@ -17,7 +17,7 @@
  *   GNU General Public License for more details.                           *
  *                                                                          *
  *   To view a copy of the GNU General Public License, go to the following  *
- *   location: <http://www.gnu.org/licenses/>.                              *
+ *   location: <https://www.gnu.org/licenses/>.                             *
  ****************************************************************************/
 
 #include "../config.h"
@@ -50,7 +50,7 @@ void LockScreen::onRedraw(draw_mode_t what) {
   }
 
   if (what & FOREGROUND) {
-    #ifdef TOUCH_UI_PORTRAIT
+    #if ENABLED(TOUCH_UI_PORTRAIT)
       #define GRID_COLS 1
       #define GRID_ROWS 10
     #else
@@ -72,24 +72,16 @@ void LockScreen::onRedraw(draw_mode_t what) {
         message = GET_TEXT_F(MSG_PASSCODE_ACCEPTED);
         break;
       default:
-        if (passcode == 0) {
-          message = GET_TEXT_F(MSG_PASSCODE_SELECT);
-        } else {
-          message = GET_TEXT_F(MSG_PASSCODE_REQUEST);
-        }
+        message = passcode ? GET_TEXT_F(MSG_PASSCODE_REQUEST) : GET_TEXT_F(MSG_PASSCODE_SELECT);
     }
     message_style() = '\0'; // Terminate the string.
 
-    #ifdef TOUCH_UI_PORTRAIT
-      constexpr uint8_t l = 6;
-    #else
-      constexpr uint8_t l = 3;
-    #endif
+    constexpr uint8_t l = TERN(TOUCH_UI_PORTRAIT, 6, 3);
 
     const uint8_t pressed = EventLoop::get_pressed_tag();
 
     cmd.font(font_large)
-    #ifdef TOUCH_UI_PORTRAIT
+    #if ENABLED(TOUCH_UI_PORTRAIT)
        .text(BTN_POS(1,2), BTN_SIZE(1,1), message)
        .font(font_xlarge)
        .text(BTN_POS(1,4), BTN_SIZE(1,1), screen_data.LockScreen.passcode)
@@ -130,27 +122,25 @@ char &LockScreen::message_style() {
 }
 
 void LockScreen::onPasscodeEntered() {
-  if (passcode == 0) {
-    // We are defining a passcode
+  if (passcode == 0) {                        // We are defining a passcode
     message_style() = 0;
     onRefresh();
     sound.play(twinkle, PLAY_SYNCHRONOUS);
     passcode = compute_checksum();
     GOTO_PREVIOUS();
-  } else {
-    // We are verifying a passcode
-    if (passcode == compute_checksum()) {
-      message_style() = 'g';
-      onRefresh();
-      sound.play(twinkle, PLAY_SYNCHRONOUS);
-      GOTO_PREVIOUS();
-    } else {
-      message_style() = 'w';
-      onRefresh();
-      sound.play(sad_trombone, PLAY_SYNCHRONOUS);
-      current_screen.forget(); // Discard the screen the user was trying to go to.
-      GOTO_PREVIOUS();
-    }
+  }
+  else if (passcode == compute_checksum()) {  // We are verifying a passcode
+    message_style() = 'g';
+    onRefresh();
+    sound.play(twinkle, PLAY_SYNCHRONOUS);
+    GOTO_PREVIOUS();
+  }
+  else {
+    message_style() = 'w';
+    onRefresh();
+    sound.play(sad_trombone, PLAY_SYNCHRONOUS);
+    current_screen.forget(); // Discard the screen the user was trying to go to.
+    GOTO_PREVIOUS();
   }
 }
 
@@ -162,7 +152,8 @@ bool LockScreen::onTouchEnd(uint8_t tag) {
         // Backspace deletes previous entered characters.
         *--c = '_';
       }
-    } else {
+    }
+    else {
       // Append character to passcode
       *c++ = tag;
       if (*c == '\0') {
