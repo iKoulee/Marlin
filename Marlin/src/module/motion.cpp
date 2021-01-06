@@ -74,6 +74,10 @@
 #define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
 #include "../core/debug_out.h"
 
+#if !defined(STR_HELPER)
+    #define STR_HELPER(x) #x
+#endif
+
 /**
  * axis_homed
  *   Flags that each linear axis was homed.
@@ -1657,7 +1661,7 @@ void homeaxis(const AxisEnum axis) {
 
     // Slow move towards endstop until triggered
     const float rebump = bump * 2;
-    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Re-bump: ", rebump, "mm");
+    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Re-bump: " STR_HELPER(rebump) "mm");
     do_homing_move(axis, rebump, get_homing_bump_feedrate(axis));
 
     #if BOTH(HOMING_Z_WITH_PROBE, BLTOUCH)
